@@ -1,0 +1,83 @@
+//修改为库
+//apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        //移除应用ID
+        //applicationId "com.wangjunjian.facerecognition"
+        minSdkVersion 21
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_PLATFORM=android-21',
+                          '-DANDROID_TOOLCHAIN=clang', '-DANDROID_STL=c++_static', '-DCMAKE_BUILD_TYPE=Release ..'
+                cppFlags "-frtti -fexceptions -std=c++11 -O3"
+            }
+        }
+        //要生成的目标平台ABI
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+    //JNI库输出路径
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['../distribution/libs']
+            jni.srcDirs('src/main/jni')
+        }
+    }
+    //消除错误 Caused by: com.android.builder.merge.DuplicateRelativeFileException: More than one file was found with OS independent path 'lib/x86/libface-recognition.so'
+    packagingOptions {
+        pickFirst 'lib/armeabi-v7a/libface-recognition.so'
+        pickFirst 'lib/arm64-v8a/libface-recognition.so'
+        pickFirst 'lib/x86/libface-recognition.so'
+        pickFirst 'lib/x86_64/libface-recognition.so'
+    }
+}
+
+//打包jar到指定路径
+task makeJar(type: Copy) {
+    delete 'build/libs/face-recognition.jar'
+    from('build/intermediates/packaged-classes/release/')
+    into('../distribution/libs/')
+    include('classes.jar')
+    rename('classes.jar', 'face-recognition.jar')
+}
+makeJar.dependsOn(build)
+
+//可以指定要打包的class文件
+//task cleanJar(type: Delete) {
+//    delete 'face-recognition.jar'
+//}
+//task makeJar(type:org.gradle.api.tasks.bundling.Jar) {
+//    baseName 'face-recognition'
+//    from('build/intermediates/classes/release/')
+//    exclude('test/', 'android/', 'com/wangjunjian/facerecognition/BuildConfig.class', 'R.class')
+//    exclude{it.name.startsWith('R');}
+//    into('../distribution/libs/')
+//}
+//makeJar.dependsOn(cleanJar, build)
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+}
